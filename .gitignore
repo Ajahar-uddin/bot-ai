@@ -44,3 +44,8 @@ next-env.d.ts
 # agents
 AGENTS.md
 CLAUDE.md
+node_modules/
+dist/
+.env
+
+
