@@ -1,17 +1,16 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import LoginForm from "../components/LoginForm";
+import SignupForm from "../components/SignupForm";
 import { safeRedirectPath } from "../redirect";
 
-export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+export default async function SignupPage({ searchParams }: PageProps<"/signup">) {
   const session = await auth.api.getSession({ headers: await headers() });
   const callbackURL = safeRedirectPath((await searchParams).redirect);
 
-  // The proxy already does an optimistic cookie check; this is the authoritative one.
   if (session) {
     redirect(callbackURL);
   }
 
-  return <LoginForm callbackURL={callbackURL} />;
+  return <SignupForm callbackURL={callbackURL} />;
 }

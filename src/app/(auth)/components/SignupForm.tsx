@@ -20,10 +20,18 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export default function LoginForm({ callbackURL = "/" }: { callbackURL?: string }) {
+const MIN_PASSWORD_LENGTH = 8;
+
+export default function SignupForm({
+  callbackURL = "/",
+}: {
+  callbackURL?: string;
+}) {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [pending, setPending] = useState<"email" | "google" | "github" | null>(
     null,
   );
@@ -33,28 +41,38 @@ export default function LoginForm({ callbackURL = "/" }: { callbackURL?: string 
     const { error } = await authClient.signIn.social({
       provider,
       callbackURL,
-      errorCallbackURL: "/login",
+      errorCallbackURL: "/signup",
     });
 
     if (error) {
-      toast.error(error.message ?? `Could not sign in with ${provider}`);
+      toast.error(error.message ?? `Could not sign up with ${provider}`);
       setPending(null);
     }
   };
 
-  const handleEmailSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSignUp = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setPending("email");
 
-    const { error } = await authClient.signIn.email({ email, password });
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      toast.error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    setPending("email");
+    const { error } = await authClient.signUp.email({ name, email, password });
 
     if (error) {
-      toast.error(error.message ?? "Invalid email or password");
+      toast.error(error.message ?? "Could not create your account");
       setPending(null);
       return;
     }
 
-    toast.success("Welcome back");
+    toast.success("Account created");
     router.push(callbackURL);
     router.refresh();
   };
@@ -66,14 +84,25 @@ export default function LoginForm({ callbackURL = "/" }: { callbackURL?: string 
           <CardHeader>
             <CardTitle>
               <div className="flex items-center justify-between gap-2">
-                <h1 className="text-2xl font-bold">Login</h1>
+                <h1 className="text-2xl font-bold">Sign up</h1>
                 <ModeToggle />
               </div>
             </CardTitle>
-            <CardDescription>Welcome back to Bot AI</CardDescription>
+            <CardDescription>Create your Bot AI account</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <form onSubmit={handleEmailSignIn} className="flex flex-col gap-4">
+            <form onSubmit={handleSignUp} className="flex flex-col gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  autoComplete="name"
+                  placeholder="Ada Lovelace"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -91,15 +120,29 @@ export default function LoginForm({ callbackURL = "/" }: { callbackURL?: string 
                 <Input
                   id="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   placeholder="••••••••"
+                  minLength={MIN_PASSWORD_LENGTH}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPassword">Confirm password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="••••••••"
+                  minLength={MIN_PASSWORD_LENGTH}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
               <Button type="submit" disabled={pending !== null}>
-                {pending === "email" ? "Signing in..." : "Sign in"}
+                {pending === "email" ? "Creating account..." : "Create account"}
               </Button>
             </form>
 
@@ -114,7 +157,7 @@ export default function LoginForm({ callbackURL = "/" }: { callbackURL?: string 
               disabled={pending !== null}
               onClick={() => handleSocialSignIn("google")}
             >
-              {pending === "google" ? "Signing in..." : "Sign in with Google"}
+              {pending === "google" ? "Signing up..." : "Sign up with Google"}
               <GoogleLogoIcon weight="bold" className="size-5" />
             </Button>
             <Button
@@ -122,15 +165,15 @@ export default function LoginForm({ callbackURL = "/" }: { callbackURL?: string 
               disabled={pending !== null}
               onClick={() => handleSocialSignIn("github")}
             >
-              {pending === "github" ? "Signing in..." : "Sign in with Github"}
+              {pending === "github" ? "Signing up..." : "Sign up with Github"}
               <GithubLogoIcon className="size-5" weight="bold" />
             </Button>
           </CardContent>
           <CardFooter>
             <p className="text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="text-primary underline">
-                Sign up
+              Already have an account?{" "}
+              <Link href="/login" className="text-primary underline">
+                Login
               </Link>
             </p>
           </CardFooter>

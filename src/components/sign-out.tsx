@@ -1,24 +1,32 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { authClient, useSession } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth-client";
 import { SignOutIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export default function SignOut() {
   const router = useRouter();
+  const [pending, setPending] = useState(false);
 
   const handleSignOut = async () => {
-    try {
-      await authClient.signOut();
-      toast.success("Signed out successfully");
-      router.push("/login");
-    } catch (error: any) {
-      toast.error(error.message);
+    setPending(true);
+    const { error } = await authClient.signOut();
+
+    if (error) {
+      toast.error(error.message ?? "Could not sign out");
+      setPending(false);
+      return;
     }
+
+    toast.success("Signed out successfully");
+    router.push("/login");
+    router.refresh();
   };
+
   return (
-    <Button onClick={() => handleSignOut()} size="icon">
+    <Button onClick={handleSignOut} disabled={pending} size="icon">
       <SignOutIcon size={50} />
     </Button>
   );

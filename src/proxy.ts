@@ -1,19 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getSessionCookie } from "better-auth/cookies";
 
-export async function proxy(request: NextRequest) {
-    const session = await auth.api.getSession({
-        headers: await headers()
-    })
+/**
+ * Routes that belong to signed-out users. A signed-in visitor is bounced off them.
+ */
+const AUTH_ROUTES = ["/login", "/signup"];
 
-    if (!session) {
-        return NextResponse.redirect(new URL("/login", request.url));
+export function proxy(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+
+    // Optimistic check only — it reads the session cookie without touching the
+    // database. Anything that actually depends on the user must re-check the
+    // session server-side (see `auth.api.getSession`).
+    const hasSession = getSessionCookie(request) !== null;
+    const isAuthRoute = AUTH_ROUTES.some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`),
+    );
+
+    if (isAuthRoute) {
+        if (hasSession) {
+            return NextResponse.redirect(new URL("/", request.url));
+        }
+        return NextResponse.next();
+    }
+
+    if (!hasSession) {
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("redirect", pathname);
+        return NextResponse.redirect(loginUrl);
     }
 
     return NextResponse.next();
 }
 
 export const config = {
-    matcher: ["/"],
+    // Everything except Next internals, the auth API itself and static assets.
+    matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|.*\.).*)"],
 };
