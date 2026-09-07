@@ -1,4 +1,4 @@
-# Bot AI
+# **[Prisma8 BetterAuth](https://github.com/Ajahar-uddin/prisma8-betterauth-starter)** 
 
 A Next.js starter with authentication already wired end to end — email/password plus Google and GitHub OAuth, session persistence, and route protection that works in both directions.
 
